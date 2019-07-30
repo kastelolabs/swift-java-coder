@@ -202,7 +202,7 @@ public struct JavaCoderConfig {
             defer {
                 JNI.api.ReleaseByteArrayElements(JNI.env, byteArray, pointer, 0)
             }
-            return Data(bytes: pointer, count: length)
+            return Data(bytes: pointer, count: Int(length))
         })
     }
 

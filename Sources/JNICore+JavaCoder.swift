@@ -115,7 +115,7 @@ public extension JNICore {
         return jboolean(JNI_FALSE)
     }
     
-    public enum JNIError: Error {
+    enum JNIError: Error {
         
         case classNotFoundException(String)
         case methodNotFoundException(String)
