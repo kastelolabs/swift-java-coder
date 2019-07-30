@@ -6,12 +6,12 @@ let package = Package(
     name: "JavaCoder",
     products:[
         .library(
-            name: "JavaCoder", 
+            name: "JavaCoder",
             targets:["JavaCoder"]
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/readdle/java_swift.git", .upToNextMinor(from: "2.1.5")),
+        .package(url: "https://github.com/readdle/java_swift.git", .branch("swift5")),
         .package(url: "https://github.com/readdle/swift-anycodable.git", .upToNextMinor(from: "1.0.2")),
     ],
     targets: [
