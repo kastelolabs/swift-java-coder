@@ -176,13 +176,13 @@ public struct JavaCoderConfig {
 
         RegisterType(type: Data.self, javaClassname: ByteBufferClassname, encodableClosure: {
             let valueData = $0 as! Data
-            let byteArray: jbyteArray? = JNI.api.NewByteArray(JNI.env, jsize(valueData.count))
+            let byteArray = JNI.api.NewByteArray(JNI.env, Int32(valueData.count))
             if let throwable = JNI.ExceptionCheck() {
                 throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: [],
                         debugDescription: "Can't create NewByteArray \(valueData.count)"))
             }
             valueData.withUnsafeBytes({ (pointer: UnsafePointer<Int8>) -> Void in
-                JNI.api.SetByteArrayRegion(JNI.env, byteArray, 0, jsize(valueData.count), pointer)
+                JNI.api.SetByteArrayRegion(JNI.env, byteArray, 0, Int32(valueData.count), pointer)
             })
             if let throwable = JNI.ExceptionCheck() {
                 throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: [],
