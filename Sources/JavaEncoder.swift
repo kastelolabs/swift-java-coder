@@ -28,7 +28,7 @@ indirect enum JNIStorageType {
     case array(className: String)
     case dictionary
     case anyCodable(codable: JNIStorageType)
-    
+
     var sig: String {
         switch self {
         case .object(let className):
@@ -52,16 +52,16 @@ class JNIStorageObject {
             }
         }
     }
-    
+
     init(type: JNIStorageType, javaObject: jobject) {
         self.type = type
         self.javaObject = javaObject
     }
-    
+
     init(type: JNIStorageType) {
         self.type = type
     }
-    
+
     deinit {
         if let value = javaObject {
             JNI.api.DeleteLocalRef(JNI.env, value)
@@ -73,19 +73,19 @@ class JNIStorageObject {
 open class JavaEncoder: Encoder {
 
     // MARK: Properties
-    
+
     /// The path to the current point in encoding.
     public var codingPath: [CodingKey]
-    
+
     /// Contextual user-provided information for use during encoding.
     public var userInfo: [CodingUserInfoKey : Any] {
         return [:]
     }
-    
+
     fileprivate let package: String
     fileprivate var javaObjects: [JNIStorageObject]
     fileprivate let missingFieldsStrategy: MissingFieldsStrategy
-    
+
     // MARK: - Constructing a JSON Encoder
     /// Initializes `self` with default strategies.
     public init(forPackage: String, missingFieldsStrategy: MissingFieldsStrategy = .throw) {
@@ -94,7 +94,7 @@ open class JavaEncoder: Encoder {
         self.javaObjects = [JNIStorageObject]()
         self.missingFieldsStrategy = missingFieldsStrategy
     }
-    
+
     // MARK: - Encoding Values
     /// Encodes the given top-level value and returns its JSON representation.
     ///
@@ -115,7 +115,7 @@ open class JavaEncoder: Encoder {
         }
 
     }
-    
+
     // MARK: - Encoder Methods
     public func container<Key>(keyedBy: Key.Type) -> KeyedEncodingContainer<Key> {
         guard let storage = self.javaObjects.popLast() else {
@@ -135,7 +135,7 @@ open class JavaEncoder: Encoder {
             fatalError("Only keyed containers")
         }
     }
-    
+
     public func unkeyedContainer() -> UnkeyedEncodingContainer {
         guard let storage = self.javaObjects.popLast() else {
             preconditionFailure("No instances in stack")
@@ -149,7 +149,7 @@ open class JavaEncoder: Encoder {
             fatalError("Only unkeyed containers")
         }
     }
-    
+
     public func singleValueContainer() -> SingleValueEncodingContainer {
         guard let storage = self.javaObjects.popLast() else {
             preconditionFailure("No instances in stack")
@@ -160,25 +160,25 @@ open class JavaEncoder: Encoder {
         default:
             fatalError("Only object type supported here")
         }
-        
+
     }
 }
 
 // MARK: - Encoding Containers
 fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerProtocol {
-    
+
     typealias Key = K
-    
+
     // MARK: Properties
     /// A reference to the encoder we're writing to.
     private let encoder: JavaEncoder
-    
+
     private let javaClass: String
     private let jniStorage: JNIStorageObject
-    
+
     /// The path of coding keys taken to get to this point in encoding.
     private(set) public var codingPath: [CodingKey]
-    
+
     // MARK: - Initialization
     /// Initializes `self` with the given references.
     fileprivate init(referencing encoder: JavaEncoder, codingPath: [CodingKey], javaClass: String, jniStorage: JNIStorageObject) {
@@ -187,16 +187,16 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
         self.javaClass = javaClass
         self.jniStorage = jniStorage
     }
-    
+
     private var javaObject: jobject {
         return jniStorage.javaObject
     }
-    
+
     // MARK: - KeyedEncodingContainerProtocol Methods
     public func encodeNil(forKey key: Key) throws {
         throw JavaCodingError.notSupported("JavaObjectContainer.encodeNil(forKey: \(key)")
     }
-    
+
     public func encode<T : Encodable>(_ value: T, forKey key: Key) throws {
         do {
             let object = try self.encoder.box(value)
@@ -212,20 +212,20 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
             }
         }
     }
-    
+
     public func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
         preconditionFailure("Not implemented: nestedContainer")
     }
-    
+
     public func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
         preconditionFailure("Not implemented: nestedUnkeyedContainer")
     }
-    
+
     public func superEncoder() -> Encoder {
         self.encoder.javaObjects.append(self.jniStorage)
         return self.encoder
     }
-    
+
     public func superEncoder(forKey key: Key) -> Encoder {
         preconditionFailure("Not implemented: superEncoder")
     }
@@ -234,18 +234,18 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
 // MARK: - Encoding Containers
 // Keyed HashMap Container used for [String: Any] or [Int: Any]
 fileprivate class JavaHashMapKeyedContainer<K : CodingKey> : KeyedEncodingContainerProtocol {
-    
+
     typealias Key = K
-    
+
     // MARK: Properties
     /// A reference to the encoder we're writing to.
     private let encoder: JavaEncoder
-    
+
     private let jniStorage: JNIStorageObject
-    
+
     /// The path of coding keys taken to get to this point in encoding.
     private(set) public var codingPath: [CodingKey]
-    
+
     // MARK: - Initialization
     /// Initializes `self` with the given references.
     fileprivate init(referencing encoder: JavaEncoder, codingPath: [CodingKey], jniStorage: JNIStorageObject) {
@@ -253,16 +253,16 @@ fileprivate class JavaHashMapKeyedContainer<K : CodingKey> : KeyedEncodingContai
         self.codingPath = codingPath
         self.jniStorage = jniStorage
     }
-    
+
     private var javaObject: jobject {
         return jniStorage.javaObject
     }
-    
+
     // MARK: - KeyedEncodingContainerProtocol Methods
     public func encodeNil(forKey key: Key) throws {
         throw JavaCodingError.notSupported("JavaHashMapContainer.encodeNil(forKey: \(key))")
     }
-    
+
     public func encode<T : Encodable>(_ value: T, forKey key: Key) throws {
         let keyStorage: JNIStorageObject
         if let intValue = key.intValue {
@@ -271,24 +271,24 @@ fileprivate class JavaHashMapKeyedContainer<K : CodingKey> : KeyedEncodingContai
         else {
             keyStorage = try self.encoder.box(key.stringValue)
         }
-        
+
         let valueStorage = try self.encoder.box(value)
         let result = JNI.CallObjectMethod(javaObject, methodID: HashMapPutMethod, args: [jvalue(l: keyStorage.javaObject), jvalue(l: valueStorage.javaObject)])
         assert(result == nil, "Rewrite for key \(key.stringValue)")
     }
-    
+
     public func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
         preconditionFailure("Not implemented: nestedContainer")
     }
-    
+
     public func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
         preconditionFailure("Not implemented: nestedUnkeyedContainer")
     }
-    
+
     public func superEncoder() -> Encoder {
         preconditionFailure("Not implemented: superEncoder")
     }
-    
+
     public func superEncoder(forKey key: Key) -> Encoder {
         preconditionFailure("Not implemented: superEncoder")
     }
@@ -298,17 +298,17 @@ fileprivate class JavaHashMapUnkeyedContainer : UnkeyedEncodingContainer {
     // MARK: Properties
     /// A reference to the encoder we're writing to.
     private let encoder: JavaEncoder
-    
+
     /// The path of coding keys taken to get to this point in encoding.
     private(set) public var codingPath: [CodingKey]
-    
+
     /// The number of elements encoded into the container.
     public private(set) var count: Int = 0
-    
+
     private let jniStorage: JNIStorageObject
-    
+
     private var javaKey: JNIStorageObject?
-    
+
     // MARK: - Initialization
     /// Initializes `self` with the given references.
     fileprivate init(referencing encoder: JavaEncoder, codingPath: [CodingKey], jniStorage: JNIStorageObject) {
@@ -316,16 +316,16 @@ fileprivate class JavaHashMapUnkeyedContainer : UnkeyedEncodingContainer {
         self.codingPath = codingPath
         self.jniStorage = jniStorage
     }
-    
+
     private var javaObject: jobject {
         return jniStorage.javaObject
     }
-    
+
     // MARK: - UnkeyedEncodingContainer Methods
     public func encodeNil() throws {
         throw JavaCodingError.notSupported("JavaArrayContainer.encodeNil")
     }
-    
+
     public func encode<T : Encodable>(_ value: T) throws {
         let javaValue = try self.encoder.box(value)
         if let javaKey = self.javaKey {
@@ -338,15 +338,15 @@ fileprivate class JavaHashMapUnkeyedContainer : UnkeyedEncodingContainer {
         }
         count += 1
     }
-    
+
     public func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
         preconditionFailure("Not implemented: nestedContainer")
     }
-    
+
     public func nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
         preconditionFailure("Not implemented: nestedUnkeyedContainer")
     }
-    
+
     public func superEncoder() -> Encoder {
         preconditionFailure("Not implemented: superEncoder")
     }
@@ -356,15 +356,15 @@ fileprivate class JavaArrayContainer : UnkeyedEncodingContainer {
     // MARK: Properties
     /// A reference to the encoder we're writing to.
     private let encoder: JavaEncoder
-    
+
     /// The path of coding keys taken to get to this point in encoding.
     private(set) public var codingPath: [CodingKey]
-    
+
     /// The number of elements encoded into the container.
     public private(set) var count: Int = 0
-    
+
     private let jniStorage: JNIStorageObject
-    
+
     // MARK: - Initialization
     /// Initializes `self` with the given references.
     fileprivate init(referencing encoder: JavaEncoder, codingPath: [CodingKey], jniStorage: JNIStorageObject) {
@@ -372,55 +372,55 @@ fileprivate class JavaArrayContainer : UnkeyedEncodingContainer {
         self.codingPath = codingPath
         self.jniStorage = jniStorage
     }
-    
+
     private var javaObject: jobject {
         return jniStorage.javaObject
     }
-    
+
     // MARK: - UnkeyedEncodingContainer Methods
     public func encodeNil() throws {
         throw JavaCodingError.notSupported("JavaArrayContainer.encodeNil")
     }
-    
+
     public func encode<T : Encodable>(_ value: T) throws {
         let storeObject = try self.encoder.box(value)
         let rewrite = JNI.CallBooleanMethod(self.javaObject, methodID: CollectionAddMethod, args: [jvalue(l: storeObject.javaObject)])
         assert(rewrite == JNI.TRUE, "ArrayList should always return true from add()")
         count += 1
     }
-    
+
     public func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
         preconditionFailure("Not implemented: nestedContainer")
     }
-    
+
     public func nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
         preconditionFailure("Not implemented: nestedUnkeyedContainer")
     }
-    
+
     public func superEncoder() -> Encoder {
         preconditionFailure("Not implemented: superEncoder")
     }
 }
 
 class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
-    
+
     var codingPath: [CodingKey]
     let encoder: JavaEncoder
-    
+
     private var javaClass: String
     private var jniStorage: JNIStorageObject
-    
+
     init(encoder: JavaEncoder, javaClass: String, jniStorage: JNIStorageObject) {
         self.codingPath = [CodingKey]()
         self.encoder = encoder
         self.javaClass = javaClass
         self.jniStorage = jniStorage
     }
-    
+
     public func encodeNil() throws {
         throw JavaCodingError.notSupported("JavaSingleValueEncodingContainer.encodeNil")
     }
-    
+
     public func encode<T : Encodable>(_ value: T) throws {
         let rawValue = try self.encoder.box(value)
         let clazz = try JNI.getJavaClass(javaClass)
@@ -484,7 +484,7 @@ fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedEncodingContaine
         }
         catch {
             if self.encoder.missingFieldsStrategy == .ignore {
-                JNI.errorLogger("Ignore error: \(error)")
+                JNI.errorLogger("Ignore encoding error: \(error)")
             }
             else {
                 throw error
@@ -522,7 +522,7 @@ fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedEncodingContaine
 }
 
 extension JavaEncoder {
-    
+
     fileprivate func box<T: Encodable>(_ value: T) throws -> JNIStorageObject {
         let storage: JNIStorageObject
         let typeName = String(describing: type(of: value))
